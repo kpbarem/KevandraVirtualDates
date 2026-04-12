@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kevandra Virtual Date Generator</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(180deg, #e8eef5 0%, #d8e2ec 100%);
+            color: #243447;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 24px auto;
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 24px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 48px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #5a6b7c;
+            font-size: 18px;
+            margin-bottom: 32px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 32px;
+            align-items: start;
+        }
+
+        .left {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .wheel-wrap {
+            position: relative;
+            width: 540px;
+            height: 540px;
+            margin-bottom: 28px;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-bottom: 32px solid #b24b4b;
+            z-index: 10;
+        }
+
+        .wheel {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 10px solid #fff;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+            transition: transform 3.4s cubic-bezier(0.2, 0.75, 0.2, 1);
+            background:
+                conic-gradient(#e63946 0deg 45deg,
+                    /* red */
+                    #1d72d8 45deg 90deg,
+                    /* blue */
+                    #2ecc71 90deg 135deg,
+                    /* green */
+                    #f4a261 135deg 180deg,
+                    /* orange */
+                    #9b5de5 180deg 225deg,
+                    /* purple */
+                    #00bcd4 225deg 270deg,
+                    /* teal */
+                    #ffd166 270deg 315deg,
+                    /* yellow */
+                    #ef476f 315deg 360deg
+                    /* pink/red */
+                );
+        }
+
+        .center-circle {
+            position: absolute;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: white;
+            border: 6px solid #9bb1c8;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+        }
+
+        .label {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 150px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #243447;
+            white-space: nowrap;
+            text-align: left;
+            transform-origin: 0 50%;
+        }
+
+        .spin-btn {
+            border: none;
+            border-radius: 18px;
+            padding: 18px 34px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #517292 0%, #35516b 100%);
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(53, 81, 107, 0.22);
+        }
+
+        .spin-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .panel {
+            background: linear-gradient(180deg, #ffffff 0%, #f4f8fc 100%);
+            border-radius: 20px;
+            padding: 22px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            border: 2px solid #d6e2ee;
+        }
+
+        .panel h2 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 22px;
+            color: #2c3e50;
+            letter-spacing: 0.5px;
+        }
+
+        .result {
+            font-size: 18px;
+            color: #445566;
+            min-height: 28px;
+        }
+
+        .ideas-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .idea-pill {
+            background: #e8eef4;
+            border: 1px solid #d3dde7;
+            border-radius: 14px;
+            padding: 12px;
+            text-align: center;
+            color: #435364;
+        }
+
+        @media (max-width: 980px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .right {
+                width: 100%;
+            }
+
+            .wheel-wrap {
+                width: 90vw;
+                height: 90vw;
+                max-width: 540px;
+                max-height: 540px;
+            }
+        }
+
+        @media (max-width: 700px) {
+            h1 {
+                font-size: 34px;
+            }
+
+            .ideas-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .label {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Kevandra Virtual Date Generator</h1>
+        <div class="subtitle">Spin the wheel and let fate decide our next date together!</div>
+
+        <div class="layout">
+            <div class="left">
+                <div class="wheel-wrap">
+                    <div class="pointer"></div>
+                    <div class="wheel" id="wheel">
+                        <div class="center-circle"></div>
+                    </div>
+                </div>
+
+                <button class="spin-btn" id="spinBtn">Spin the wheel</button>
+            </div>
+
+            <div class="right">
+                <div class="panel">
+                    <h2>Tonight's date idea</h2>
+                    <div class="result" id="result">Spin the wheel to choose your date.</div>
+                </div>
+
+                <div class="panel">
+                    <h2>Ideas on the wheel</h2>
+                    <div class="ideas-grid" id="ideasGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ideas = [
+            "Watch Scooby-Doo",
+            "Watch Smallville",
+            "Watch a romantic movie",
+            "Чаепитие",
+            "Would-you-rather game",
+            "Plan a future trip together",
+            "Bad movie (laugh or sex)",
+            "Share old photos"
+        ];
+
+        const shortLabels = [
+            "Scooby-Doo",
+            "Smallville",
+            "Romantic movie",
+            "Чаепитие",
+            "Would you rather",
+            "Plan a trip together",
+            "Bad movie (laugh or sex)",
+            "Share old photos"
+        ];
+
+        const wheel = document.getElementById("wheel");
+        const spinBtn = document.getElementById("spinBtn");
+        const result = document.getElementById("result");
+        const ideasGrid = document.getElementById("ideasGrid");
+
+        const segmentAngle = 360 / ideas.length;
+        let currentRotation = 0;
+        let spinning = false;
+
+        shortLabels.forEach((label, i) => {
+            const angle = i * segmentAngle + segmentAngle / 2;
+
+            const div = document.createElement("div");
+            div.className = "label";
+            div.textContent = label;
+
+            // start from exact center, then push text outward along the slice
+            const radius = 72;
+
+            div.style.transform = `
+    translate(-0%, -50%)
+    rotate(${angle - 90}deg)
+    translateX(${radius}px)
+  `;
+
+            wheel.appendChild(div);
+        });
+
+        ideas.forEach((idea) => {
+            const pill = document.createElement("div");
+            pill.className = "idea-pill";
+            pill.textContent = idea;
+            ideasGrid.appendChild(pill);
+        });
+
+        spinBtn.addEventListener("click", () => {
+            if (spinning) return;
+
+            spinning = true;
+            spinBtn.disabled = true;
+
+            const winnerIndex = Math.floor(Math.random() * ideas.length);
+            const extraSpins = 360 * 5;
+            const targetRotation = 360 - (winnerIndex * segmentAngle) - (segmentAngle / 2);
+            currentRotation += extraSpins + targetRotation;
+
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+            setTimeout(() => {
+                result.textContent = ideas[winnerIndex];
+                spinning = false;
+                spinBtn.disabled = false;
+            }, 3400);
+        });
+    </script>
+</body>
+
+</html>
