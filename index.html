@@ -270,24 +270,56 @@
         let currentRotation = 0;
         let spinning = false;
 
-        shortLabels.forEach((label, i) => {
-            const angle = i * segmentAngle + segmentAngle / 2;
+        //         shortLabels.forEach((label, i) => {
+        //             const angle = i * segmentAngle + segmentAngle / 2;
 
-            const div = document.createElement("div");
-            div.className = "label";
-            div.textContent = label;
+        //             const div = document.createElement("div");
+        //             div.className = "label";
+        //             div.textContent = label;
 
-            // start from exact center, then push text outward along the slice
-            const radius = 72;
+        //             // start from exact center, then push text outward along the slice
+        //             const radius = 72;
 
-            div.style.transform = `
-    translate(-0%, -50%)
-    rotate(${angle - 90}deg)
-    translateX(${radius}px)
-  `;
+        //             div.style.transform = `
+        //     translate(-0%, -50%)
+        //     rotate(${angle - 90}deg)
+        //     translateX(${radius}px)
+        //   `;
 
-            wheel.appendChild(div);
-        });
+        //             wheel.appendChild(div);
+        //         });
+
+        function renderLabels() {
+            // remove old labels
+            document.querySelectorAll(".label").forEach(el => el.remove());
+
+            const isMobile = window.innerWidth <= 700;
+            const radius = isMobile ? 58 : 72;
+            const labelWidth = isMobile ? 80 : 120;
+            const fontSize = isMobile ? 10 : 13;
+
+            shortLabels.forEach((label, i) => {
+                const angle = i * segmentAngle + segmentAngle / 2;
+
+                const div = document.createElement("div");
+                div.className = "label";
+                div.textContent = label;
+
+                div.style.width = `${labelWidth}px`;
+                div.style.fontSize = `${fontSize}px`;
+
+                div.style.transform = `
+            translate(0%, -50%)
+            rotate(${angle - 90}deg)
+            translateX(${radius}px)
+        `;
+
+                wheel.appendChild(div);
+            });
+        }
+
+        renderLabels();
+        window.addEventListener("resize", renderLabels);
 
         ideas.forEach((idea) => {
             const pill = document.createElement("div");
@@ -319,7 +351,7 @@
                 spinBtn.disabled = false;
             }, 3400);
         });
-        
+
     </script>
 </body>
 
