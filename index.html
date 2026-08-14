@@ -35,6 +35,40 @@
             margin-bottom: 32px;
         }
 
+        /* Tabs to switch between the two wheels */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 28px;
+        }
+
+        .tab-btn {
+            border: 2px solid #d6e2ee;
+            background: #fff;
+            color: #5a6b7c;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 10px 22px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #517292 0%, #35516b 100%);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .wheel-panel {
+            display: none;
+        }
+
+        .wheel-panel.active {
+            display: block;
+        }
+
         .layout {
             display: grid;
             grid-template-columns: 1fr 420px;
@@ -76,16 +110,6 @@
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
             overflow: hidden;
             transition: transform 3.4s cubic-bezier(0.2, 0.75, 0.2, 1);
-            background:
-                conic-gradient(from -90deg,
-                    #e63946 0deg 45deg,
-                    #1d72d8 45deg 90deg,
-                    #2ecc71 90deg 135deg,
-                    #f4a261 135deg 180deg,
-                    #9b5de5 180deg 225deg,
-                    #00bcd4 225deg 270deg,
-                    #ffd166 270deg 315deg,
-                    #ef476f 315deg 360deg);
         }
 
         .center-circle {
@@ -106,16 +130,12 @@
             left: 50%;
             top: 50%;
             width: 120px;
-            /* smaller base */
             font-size: 18px;
             font-weight: bold;
             color: #243447;
             text-align: center;
-
             white-space: normal;
-            /* ✅ allow wrapping */
             line-height: 1.1;
-
             transform-origin: 0 50%;
         }
 
@@ -142,6 +162,11 @@
             padding: 22px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
             border: 2px solid #d6e2ee;
+            margin-bottom: 20px;
+        }
+
+        .panel:last-child {
+            margin-bottom: 0;
         }
 
         .panel h2 {
@@ -172,6 +197,69 @@
             padding: 12px;
             text-align: center;
             color: #435364;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .idea-pill span {
+            overflow-wrap: anywhere;
+        }
+
+        .remove-btn {
+            border: none;
+            background: transparent;
+            color: #b24b4b;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+            padding: 2px 6px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .remove-btn:hover {
+            background: rgba(178, 75, 75, 0.12);
+        }
+
+        .add-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .add-row input {
+            flex: 1;
+            border: 1px solid #d3dde7;
+            border-radius: 12px;
+            padding: 10px 12px;
+            font-size: 15px;
+            font-family: inherit;
+        }
+
+        .add-row button {
+            border: none;
+            border-radius: 12px;
+            padding: 10px 18px;
+            font-size: 15px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #517292 0%, #35516b 100%);
+            cursor: pointer;
+        }
+
+        .add-row button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .hint {
+            font-size: 13px;
+            color: #8296a8;
+            text-align: center;
+            margin-top: 10px;
         }
 
         @media (max-width: 980px) {
@@ -212,34 +300,198 @@
         <h1>Kevandra Virtual Date Generator</h1>
         <div class="subtitle">Spin the wheel and let fate decide our next date together!</div>
 
-        <div class="layout">
-            <div class="left">
-                <div class="wheel-wrap">
-                    <div class="pointer"></div>
-                    <div class="wheel" id="wheel">
-                        <div class="center-circle"></div>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="dates">Date Ideas</button>
+            <button class="tab-btn" data-tab="categories">Categories</button>
+        </div>
+
+        <!-- WHEEL 1: original fixed date ideas -->
+        <div class="wheel-panel active" id="panel-dates">
+            <div class="layout">
+                <div class="left">
+                    <div class="wheel-wrap">
+                        <div class="pointer"></div>
+                        <div class="wheel" id="wheel-dates">
+                            <div class="center-circle"></div>
+                        </div>
+                    </div>
+                    <button class="spin-btn" id="spinBtn-dates">Spin the wheel</button>
+                </div>
+
+                <div class="right">
+                    <div class="panel">
+                        <h2>Tonight's date idea</h2>
+                        <div class="result" id="result-dates">Spin the wheel to choose your date.</div>
+                    </div>
+
+                    <div class="panel">
+                        <h2>Ideas on the wheel</h2>
+                        <div class="ideas-grid" id="ideasGrid-dates"></div>
                     </div>
                 </div>
-
-                <button class="spin-btn" id="spinBtn">Spin the wheel</button>
             </div>
+        </div>
 
-            <div class="right">
-                <div class="panel">
-                    <h2>Tonight's date idea</h2>
-                    <div class="result" id="result">Spin the wheel to choose your date.</div>
+        <!-- WHEEL 2: editable categories -->
+        <div class="wheel-panel" id="panel-categories">
+            <div class="layout">
+                <div class="left">
+                    <div class="wheel-wrap">
+                        <div class="pointer"></div>
+                        <div class="wheel" id="wheel-categories">
+                            <div class="center-circle"></div>
+                        </div>
+                    </div>
+                    <button class="spin-btn" id="spinBtn-categories">Spin the wheel</button>
                 </div>
 
-                <div class="panel">
-                    <h2>Ideas on the wheel</h2>
-                    <div class="ideas-grid" id="ideasGrid"></div>
+                <div class="right">
+                    <div class="panel">
+                        <h2>Tonight's category</h2>
+                        <div class="result" id="result-categories">Spin the wheel to choose a category.</div>
+                    </div>
+
+                    <div class="panel">
+                        <h2>Categories on the wheel</h2>
+                        <div class="ideas-grid" id="ideasGrid-categories"></div>
+                        <div class="add-row">
+                            <input type="text" id="addInput-categories" placeholder="Add a category…" maxlength="40" />
+                            <button id="addBtn-categories">Add</button>
+                        </div>
+                        <div class="hint">Add or remove items, then spin. Needs at least 2 to spin.</div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        const ideas = [
+        // ---------- Shared wheel engine ----------
+        const PALETTE = ["#e63946", "#1d72d8", "#2ecc71", "#f4a261", "#9b5de5", "#00bcd4", "#ffd166", "#ef476f", "#4cc9f0", "#f77f00"];
+
+        function buildConicGradient(count) {
+            const segAngle = 360 / count;
+            const stops = [];
+            for (let i = 0; i < count; i++) {
+                const color = PALETTE[i % PALETTE.length];
+                stops.push(`${color} ${i * segAngle}deg ${(i + 1) * segAngle}deg`);
+            }
+            return `conic-gradient(from -90deg, ${stops.join(", ")})`;
+        }
+
+        function createWheelController({ wheelEl, spinBtn, resultEl, gridEl, items, editable, addInputEl, addBtnEl }) {
+            let currentRotation = 0;
+            let spinning = false;
+
+            function renderWheel() {
+                wheelEl.querySelectorAll(".label").forEach(el => el.remove());
+
+                if (items.length === 0) {
+                    wheelEl.style.background = "#e8eef4";
+                    spinBtn.disabled = true;
+                    return;
+                }
+
+                wheelEl.style.background = buildConicGradient(items.length);
+                spinBtn.disabled = items.length < 2;
+
+                const segAngle = 360 / items.length;
+                const isMobile = window.innerWidth <= 700;
+                const radius = isMobile ? 58 : 72;
+                const labelWidth = isMobile ? 80 : 120;
+                const fontSize = isMobile ? 10 : 13;
+
+                items.forEach((label, i) => {
+                    const angle = i * segAngle + segAngle / 2;
+                    const div = document.createElement("div");
+                    div.className = "label";
+                    div.textContent = label;
+                    div.style.width = `${labelWidth}px`;
+                    div.style.fontSize = `${fontSize}px`;
+                    div.style.transform = `
+                        translate(0%, -50%)
+                        rotate(${angle - 90}deg)
+                        translateX(${radius}px)
+                    `;
+                    wheelEl.appendChild(div);
+                });
+            }
+
+            function renderGrid() {
+                gridEl.innerHTML = "";
+                items.forEach((idea, i) => {
+                    const pill = document.createElement("div");
+                    pill.className = "idea-pill";
+
+                    const span = document.createElement("span");
+                    span.textContent = idea;
+                    pill.appendChild(span);
+
+                    if (editable) {
+                        const btn = document.createElement("button");
+                        btn.className = "remove-btn";
+                        btn.textContent = "✕";
+                        btn.title = "Remove";
+                        btn.addEventListener("click", () => {
+                            items.splice(i, 1);
+                            renderAll();
+                            resultEl.textContent = items.length
+                                ? "Spin the wheel to choose a category."
+                                : "Add some categories, then spin.";
+                        });
+                        pill.appendChild(btn);
+                    }
+
+                    gridEl.appendChild(pill);
+                });
+            }
+
+            function renderAll() {
+                renderWheel();
+                renderGrid();
+            }
+
+            spinBtn.addEventListener("click", () => {
+                if (spinning || items.length < 2) return;
+                spinning = true;
+                spinBtn.disabled = true;
+
+                const winnerIndex = Math.floor(Math.random() * items.length);
+                const segAngle = 360 / items.length;
+                const targetAngle = -(winnerIndex * segAngle + segAngle / 2);
+
+                currentRotation += 360 * 5 + targetAngle - (currentRotation % 360);
+                wheelEl.style.transform = `rotate(${currentRotation}deg)`;
+
+                setTimeout(() => {
+                    resultEl.textContent = items[winnerIndex];
+                    spinning = false;
+                    spinBtn.disabled = items.length < 2;
+                }, 3400);
+            });
+
+            if (editable && addInputEl && addBtnEl) {
+                function addItem() {
+                    const val = addInputEl.value.trim();
+                    if (!val) return;
+                    items.push(val);
+                    addInputEl.value = "";
+                    renderAll();
+                }
+                addBtnEl.addEventListener("click", addItem);
+                addInputEl.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") addItem();
+                });
+            }
+
+            window.addEventListener("resize", renderWheel);
+            renderAll();
+
+            return { renderAll };
+        }
+
+        // ---------- Wheel 1: fixed date ideas ----------
+        const dateIdeas = [
             "Watch Scooby-Doo",
             "Watch Smallville",
             "Watch a romantic movie",
@@ -250,108 +502,38 @@
             "Spider Noir"
         ];
 
-        const shortLabels = [
-            "Scooby-Doo",
-            "Smallville",
-            "Romantic movie",
-            "Чаепитие",
-            "Would you rather",
-            "Plan a trip together",
-            "Bad movie (laugh or sex)",
-            "Spider Noir"
-        ];
+        createWheelController({
+            wheelEl: document.getElementById("wheel-dates"),
+            spinBtn: document.getElementById("spinBtn-dates"),
+            resultEl: document.getElementById("result-dates"),
+            gridEl: document.getElementById("ideasGrid-dates"),
+            items: dateIdeas,
+            editable: false
+        });
 
-        const wheel = document.getElementById("wheel");
-        const spinBtn = document.getElementById("spinBtn");
-        const result = document.getElementById("result");
-        const ideasGrid = document.getElementById("ideasGrid");
+        // ---------- Wheel 2: editable categories ----------
+        const categoryIdeas = [];
 
-        const segmentAngle = 360 / ideas.length;
-        let currentRotation = 0;
-        let spinning = false;
+        createWheelController({
+            wheelEl: document.getElementById("wheel-categories"),
+            spinBtn: document.getElementById("spinBtn-categories"),
+            resultEl: document.getElementById("result-categories"),
+            gridEl: document.getElementById("ideasGrid-categories"),
+            items: categoryIdeas,
+            editable: true,
+            addInputEl: document.getElementById("addInput-categories"),
+            addBtnEl: document.getElementById("addBtn-categories")
+        });
 
-        //         shortLabels.forEach((label, i) => {
-        //             const angle = i * segmentAngle + segmentAngle / 2;
-
-        //             const div = document.createElement("div");
-        //             div.className = "label";
-        //             div.textContent = label;
-
-        //             // start from exact center, then push text outward along the slice
-        //             const radius = 72;
-
-        //             div.style.transform = `
-        //     translate(-0%, -50%)
-        //     rotate(${angle - 90}deg)
-        //     translateX(${radius}px)
-        //   `;
-
-        //             wheel.appendChild(div);
-        //         });
-
-        function renderLabels() {
-            // remove old labels
-            document.querySelectorAll(".label").forEach(el => el.remove());
-
-            const isMobile = window.innerWidth <= 700;
-            const radius = isMobile ? 58 : 72;
-            const labelWidth = isMobile ? 80 : 120;
-            const fontSize = isMobile ? 10 : 13;
-
-            shortLabels.forEach((label, i) => {
-                const angle = i * segmentAngle + segmentAngle / 2;
-
-                const div = document.createElement("div");
-                div.className = "label";
-                div.textContent = label;
-
-                div.style.width = `${labelWidth}px`;
-                div.style.fontSize = `${fontSize}px`;
-
-                div.style.transform = `
-            translate(0%, -50%)
-            rotate(${angle - 90}deg)
-            translateX(${radius}px)
-        `;
-
-                wheel.appendChild(div);
+        // ---------- Tabs ----------
+        document.querySelectorAll(".tab-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+                document.querySelectorAll(".wheel-panel").forEach(p => p.classList.remove("active"));
+                btn.classList.add("active");
+                document.getElementById(`panel-${btn.dataset.tab}`).classList.add("active");
             });
-        }
-
-        renderLabels();
-        window.addEventListener("resize", renderLabels);
-
-        ideas.forEach((idea) => {
-            const pill = document.createElement("div");
-            pill.className = "idea-pill";
-            pill.textContent = idea;
-            ideasGrid.appendChild(pill);
         });
-
-        spinBtn.addEventListener("click", () => {
-            if (spinning) return;
-
-            spinning = true;
-            spinBtn.disabled = true;
-
-            const winnerIndex = Math.floor(Math.random() * ideas.length);
-            const segmentAngle = 360 / ideas.length;
-
-            // center of the winning slice under the top pointer
-            const targetAngle = -(winnerIndex * segmentAngle + segmentAngle / 2);
-
-            // keep spinning forward naturally
-            currentRotation += 360 * 5 + targetAngle - (currentRotation % 360);
-
-            wheel.style.transform = `rotate(${currentRotation}deg)`;
-
-            setTimeout(() => {
-                result.textContent = ideas[winnerIndex];
-                spinning = false;
-                spinBtn.disabled = false;
-            }, 3400);
-        });
-
     </script>
 </body>
 
