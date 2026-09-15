@@ -310,6 +310,45 @@
             margin-top: 10px;
         }
 
+        .saved-wheel-row {
+            background: #e8eef4;
+            border: 1px solid #d3dde7;
+            border-radius: 14px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .saved-wheel-row .name {
+            font-weight: bold;
+            color: #435364;
+            overflow-wrap: anywhere;
+        }
+
+        .saved-wheel-row .actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .load-btn {
+            border: none;
+            border-radius: 10px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #517292 0%, #35516b 100%);
+            cursor: pointer;
+        }
+
+        .load-btn:hover {
+            opacity: 0.9;
+        }
+
         @media (max-width: 980px) {
             .layout {
                 grid-template-columns: 1fr;
@@ -396,7 +435,7 @@
                     <div class="panel">
                         <div class="panel-header-row">
                             <h2>Tonight's category</h2>
-                            <span class="sync-dot" title="Shared live with your partner"></span>
+                            <!-- <span class="sync-dot" title="Shared live with your partner"></span> -->
                         </div>
                         <div class="result" id="result-categories">Loading shared wheel…</div>
                     </div>
@@ -404,7 +443,7 @@
                     <div class="panel">
                         <div class="panel-header-row">
                             <h2>Categories on the wheel</h2>
-                            <span class="sync-dot" title="Shared live with your partner"></span>
+                            <!-- <span class="sync-dot" title="Shared live with your partner"></span> -->
                         </div>
                         <div class="ideas-grid" id="ideasGrid-categories"></div>
                         <div class="add-row">
@@ -415,6 +454,19 @@
                             <button class="clear-btn" id="clearBtn-categories">Clear wheel for both of us</button>
                         </div>
                         <div class="hint">This wheel is shared — anything either of you adds, removes, or spins shows up for both. Needs at least 2 to spin.</div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header-row">
+                            <h2>Saved wheels</h2>
+                            <!-- <span class="sync-dot" title="Shared live with your partner"></span> -->
+                        </div>
+                        <div id="savedWheelsList-categories"></div>
+                        <div class="add-row">
+                            <input type="text" id="saveNameInput-categories" placeholder="Name this wheel…" maxlength="30" />
+                            <button id="saveWheelBtn-categories">Save current wheel</button>
+                        </div>
+                        <div class="hint" id="saveHint-categories">You can save up to 3 wheels.</div>
                     </div>
                 </div>
             </div>
@@ -563,6 +615,7 @@
             return { renderAll, spinToIndex, isSpinning: () => spinning };
         }
 
+        // ---------- Wheel 1: fixed date ideas ----------
         const dateIdeas = [
             "Watch Scooby-Doo",
             "Watch Smallville",
@@ -583,13 +636,97 @@
             editable: false
         });
 
+        // ---------- Wheel 2: editable, SHARED categories ----------
         const categoryIdeas = [];
+        const savedWheels = []; 
+        const MAX_SAVED_WHEELS = 3;
         let lastSeenSpinId = null;
         let controller = null;
         let applyingRemoteUpdate = false;
 
+        function renderSavedWheels() {
+            const listEl = document.getElementById("savedWheelsList-categories");
+            const hintEl = document.getElementById("saveHint-categories");
+            const saveBtn = document.getElementById("saveWheelBtn-categories");
+
+            listEl.innerHTML = "";
+
+            if (savedWheels.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "hint";
+                empty.style.marginTop = "0";
+                empty.textContent = "No saved wheels yet.";
+                listEl.appendChild(empty);
+            }
+
+            savedWheels.forEach((wheel, i) => {
+                const row = document.createElement("div");
+                row.className = "saved-wheel-row";
+
+                const name = document.createElement("span");
+                name.className = "name";
+                name.textContent = `${wheel.name} (${wheel.categories.length})`;
+                row.appendChild(name);
+
+                const actions = document.createElement("div");
+                actions.className = "actions";
+
+                const loadBtn = document.createElement("button");
+                loadBtn.className = "load-btn";
+                loadBtn.textContent = "Load";
+                loadBtn.addEventListener("click", () => loadSavedWheel(i));
+                actions.appendChild(loadBtn);
+
+                const delBtn = document.createElement("button");
+                delBtn.className = "remove-btn";
+                delBtn.textContent = "✕";
+                delBtn.title = "Delete saved wheel";
+                delBtn.addEventListener("click", () => deleteSavedWheel(i));
+                actions.appendChild(delBtn);
+
+                row.appendChild(actions);
+                listEl.appendChild(row);
+            });
+
+            saveBtn.disabled = savedWheels.length >= MAX_SAVED_WHEELS;
+            hintEl.textContent = savedWheels.length >= MAX_SAVED_WHEELS
+                ? "You have 3 saved wheels — delete one to save a new one."
+                : `You can save up to 3 wheels (${savedWheels.length}/3 used).`;
+        }
+
+        function loadSavedWheel(i) {
+            const wheel = savedWheels[i];
+            if (!wheel) return;
+            categoryIdeas.length = 0;
+            wheel.categories.forEach(c => categoryIdeas.push(c));
+            controller.renderAll();
+            const resultEl = document.getElementById("result-categories");
+            resultEl.textContent = categoryIdeas.length
+                ? "Spin the wheel to choose a category."
+                : "Add some categories, then spin.";
+            window.saveCategoriesToFirestore(categoryIdeas);
+        }
+
+        function deleteSavedWheel(i) {
+            savedWheels.splice(i, 1);
+            renderSavedWheels();
+            window.saveSavedWheelsToFirestore(savedWheels);
+        }
+
         function initSharedWheel() {
             const resultEl = document.getElementById("result-categories");
+
+            document.getElementById("saveWheelBtn-categories").addEventListener("click", () => {
+                if (savedWheels.length >= MAX_SAVED_WHEELS || categoryIdeas.length === 0) return;
+                const nameInput = document.getElementById("saveNameInput-categories");
+                const name = nameInput.value.trim() || `Wheel ${savedWheels.length + 1}`;
+                savedWheels.push({ name, categories: [...categoryIdeas] });
+                nameInput.value = "";
+                renderSavedWheels();
+                window.saveSavedWheelsToFirestore(savedWheels);
+            });
+
+            renderSavedWheels();
 
             controller = createWheelController({
                 wheelEl: document.getElementById("wheel-categories"),
@@ -613,7 +750,8 @@
                 }
             });
 
-            window.applyRemoteWheelState = (remoteCategories, remoteSpin) => {
+        
+            window.applyRemoteWheelState = (remoteCategories, remoteSpin, remoteSavedWheels) => {
                 applyingRemoteUpdate = true;
 
                 const remoteJSON = JSON.stringify(remoteCategories || []);
@@ -633,11 +771,19 @@
                     lastSeenSpinId = remoteSpin.id;
                 }
 
+                const remoteSavedJSON = JSON.stringify(remoteSavedWheels || []);
+                if (remoteSavedJSON !== JSON.stringify(savedWheels)) {
+                    savedWheels.length = 0;
+                    (remoteSavedWheels || []).forEach(w => savedWheels.push(w));
+                    renderSavedWheels();
+                }
+
                 applyingRemoteUpdate = false;
             };
         }
 
         initSharedWheel();
+
         document.querySelectorAll(".tab-btn").forEach(btn => {
             btn.addEventListener("click", () => {
                 document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -648,11 +794,13 @@
         });
     </script>
 
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
         import {
             getFirestore, doc, setDoc, onSnapshot
         } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
         const firebaseConfig = {
             apiKey: "AIzaSyC5LymlkngYTRS_bQSBiq-1AVYp5yzcgjc",
             authDomain: "kevandra-dates.firebaseapp.com",
@@ -661,10 +809,12 @@
             messagingSenderId: "83308409002",
             appId: "1:83308409002:web:18732f8b16234ff31120d3"
         };
+        
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const wheelDocRef = doc(db, "kevandraWheel", "shared");
+
 
         onSnapshot(wheelDocRef, (snapshot) => {
             if (!window.applyRemoteWheelState) {
@@ -672,7 +822,7 @@
                 return;
             }
             const data = snapshot.exists() ? snapshot.data() : {};
-            window.applyRemoteWheelState(data.categories || [], data.lastSpin || null);
+            window.applyRemoteWheelState(data.categories || [], data.lastSpin || null, data.savedWheels || []);
         }, (error) => {
             console.error("Firestore sync error:", error);
         });
@@ -682,6 +832,14 @@
                 await setDoc(wheelDocRef, { categories }, { merge: true });
             } catch (e) {
                 console.error("Failed to save categories to Firestore:", e);
+            }
+        };
+
+        window.saveSavedWheelsToFirestore = async (savedWheels) => {
+            try {
+                await setDoc(wheelDocRef, { savedWheels }, { merge: true });
+            } catch (e) {
+                console.error("Failed to save wheel list to Firestore:", e);
             }
         };
 
