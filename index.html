@@ -392,7 +392,7 @@
             <button class="tab-btn" data-tab="categories">Categories</button>
         </div>
 
-        <!-- WHEEL 1: original fixed date ideas -->
+        <!-- WHEEL 1: our original fixed date ideas -->
         <div class="wheel-panel active" id="panel-dates">
             <div class="layout">
                 <div class="left">
@@ -474,7 +474,6 @@
     </div>
 
     <script>
-        // ---------- Shared wheel engine ----------
         const PALETTE = ["#e63946", "#1d72d8", "#2ecc71", "#f4a261", "#9b5de5", "#00bcd4", "#ffd166", "#ef476f", "#4cc9f0", "#f77f00"];
 
         function buildConicGradient(count) {
@@ -615,7 +614,7 @@
             return { renderAll, spinToIndex, isSpinning: () => spinning };
         }
 
-        // ---------- Wheel 1: fixed date ideas ----------
+        // Wheel 1: fixed date ideas
         const dateIdeas = [
             "Watch Scooby-Doo",
             "Watch Smallville",
@@ -636,7 +635,7 @@
             editable: false
         });
 
-        // ---------- Wheel 2: editable, SHARED categories ----------
+        // Wheel 2: editable, SHARED categories
         const categoryIdeas = [];
         const savedWheels = []; 
         const MAX_SAVED_WHEELS = 3;
