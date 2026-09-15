@@ -178,6 +178,33 @@
             letter-spacing: 0.5px;
         }
 
+        .panel-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .panel-header-row h2 {
+            margin-bottom: 0;
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2ecc71;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+
         .result {
             font-size: 18px;
             color: #445566;
@@ -253,6 +280,27 @@
         .add-row button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .clear-row {
+            display: flex;
+            justify-content: center;
+            margin-top: 12px;
+        }
+
+        .clear-btn {
+            border: 1px solid #e0b4b4;
+            background: #fff5f5;
+            color: #b24b4b;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .clear-btn:hover {
+            background: #fbe6e6;
         }
 
         .hint {
@@ -332,7 +380,6 @@
             </div>
         </div>
 
-        <!-- WHEEL 2: editable categories -->
         <div class="wheel-panel" id="panel-categories">
             <div class="layout">
                 <div class="left">
@@ -347,18 +394,27 @@
 
                 <div class="right">
                     <div class="panel">
-                        <h2>Tonight's category</h2>
-                        <div class="result" id="result-categories">Spin the wheel to choose a category.</div>
+                        <div class="panel-header-row">
+                            <h2>Tonight's category</h2>
+                            <span class="sync-dot" title="Shared live with your partner"></span>
+                        </div>
+                        <div class="result" id="result-categories">Loading shared wheel…</div>
                     </div>
 
                     <div class="panel">
-                        <h2>Categories on the wheel</h2>
+                        <div class="panel-header-row">
+                            <h2>Categories on the wheel</h2>
+                            <span class="sync-dot" title="Shared live with your partner"></span>
+                        </div>
                         <div class="ideas-grid" id="ideasGrid-categories"></div>
                         <div class="add-row">
                             <input type="text" id="addInput-categories" placeholder="Add a category…" maxlength="40" />
                             <button id="addBtn-categories">Add</button>
                         </div>
-                        <div class="hint">Add or remove items, then spin. Needs at least 2 to spin.</div>
+                        <div class="clear-row">
+                            <button class="clear-btn" id="clearBtn-categories">Clear wheel for both of us</button>
+                        </div>
+                        <div class="hint">This wheel is shared — anything either of you adds, removes, or spins shows up for both. Needs at least 2 to spin.</div>
                     </div>
                 </div>
             </div>
@@ -379,7 +435,8 @@
             return `conic-gradient(from -90deg, ${stops.join(", ")})`;
         }
 
-        function createWheelController({ wheelEl, spinBtn, resultEl, gridEl, items, editable, addInputEl, addBtnEl }) {
+        function createWheelController(config) {
+            const { wheelEl, spinBtn, resultEl, gridEl, items, editable, addInputEl, addBtnEl, clearBtnEl, onChange, defaultResultText, emptyResultText } = config;
             let currentRotation = 0;
             let spinning = false;
 
@@ -435,9 +492,8 @@
                         btn.addEventListener("click", () => {
                             items.splice(i, 1);
                             renderAll();
-                            resultEl.textContent = items.length
-                                ? "Spin the wheel to choose a category."
-                                : "Add some categories, then spin.";
+                            resultEl.textContent = items.length ? defaultResultText : emptyResultText;
+                            if (onChange) onChange();
                         });
                         pill.appendChild(btn);
                     }
@@ -451,12 +507,11 @@
                 renderGrid();
             }
 
-            spinBtn.addEventListener("click", () => {
-                if (spinning || items.length < 2) return;
+            function spinToIndex(winnerIndex, { silent = false } = {}) {
+                if (spinning || items.length < 2 || winnerIndex == null || winnerIndex >= items.length) return;
                 spinning = true;
                 spinBtn.disabled = true;
 
-                const winnerIndex = Math.floor(Math.random() * items.length);
                 const segAngle = 360 / items.length;
                 const targetAngle = -(winnerIndex * segAngle + segAngle / 2);
 
@@ -468,6 +523,14 @@
                     spinning = false;
                     spinBtn.disabled = items.length < 2;
                 }, 3400);
+
+                if (!silent && onChange) onChange({ type: "spin", index: winnerIndex });
+            }
+
+            spinBtn.addEventListener("click", () => {
+                if (spinning || items.length < 2) return;
+                const winnerIndex = Math.floor(Math.random() * items.length);
+                spinToIndex(winnerIndex);
             });
 
             if (editable && addInputEl && addBtnEl) {
@@ -477,6 +540,7 @@
                     items.push(val);
                     addInputEl.value = "";
                     renderAll();
+                    if (onChange) onChange();
                 }
                 addBtnEl.addEventListener("click", addItem);
                 addInputEl.addEventListener("keydown", (e) => {
@@ -484,13 +548,21 @@
                 });
             }
 
+            if (editable && clearBtnEl) {
+                clearBtnEl.addEventListener("click", () => {
+                    items.length = 0;
+                    renderAll();
+                    resultEl.textContent = emptyResultText;
+                    if (onChange) onChange();
+                });
+            }
+
             window.addEventListener("resize", renderWheel);
             renderAll();
 
-            return { renderAll };
+            return { renderAll, spinToIndex, isSpinning: () => spinning };
         }
 
-        // ---------- Wheel 1: fixed date ideas ----------
         const dateIdeas = [
             "Watch Scooby-Doo",
             "Watch Smallville",
@@ -511,21 +583,61 @@
             editable: false
         });
 
-        // ---------- Wheel 2: editable categories ----------
         const categoryIdeas = [];
+        let lastSeenSpinId = null;
+        let controller = null;
+        let applyingRemoteUpdate = false;
 
-        createWheelController({
-            wheelEl: document.getElementById("wheel-categories"),
-            spinBtn: document.getElementById("spinBtn-categories"),
-            resultEl: document.getElementById("result-categories"),
-            gridEl: document.getElementById("ideasGrid-categories"),
-            items: categoryIdeas,
-            editable: true,
-            addInputEl: document.getElementById("addInput-categories"),
-            addBtnEl: document.getElementById("addBtn-categories")
-        });
+        function initSharedWheel() {
+            const resultEl = document.getElementById("result-categories");
 
-        // ---------- Tabs ----------
+            controller = createWheelController({
+                wheelEl: document.getElementById("wheel-categories"),
+                spinBtn: document.getElementById("spinBtn-categories"),
+                resultEl,
+                gridEl: document.getElementById("ideasGrid-categories"),
+                items: categoryIdeas,
+                editable: true,
+                addInputEl: document.getElementById("addInput-categories"),
+                addBtnEl: document.getElementById("addBtn-categories"),
+                clearBtnEl: document.getElementById("clearBtn-categories"),
+                defaultResultText: "Spin the wheel to choose a category.",
+                emptyResultText: "Add some categories, then spin.",
+                onChange: (event) => {
+                    if (applyingRemoteUpdate) return;
+                    if (event && event.type === "spin") {
+                        window.saveSpinToFirestore(event.index);
+                    } else {
+                        window.saveCategoriesToFirestore(categoryIdeas);
+                    }
+                }
+            });
+
+            window.applyRemoteWheelState = (remoteCategories, remoteSpin) => {
+                applyingRemoteUpdate = true;
+
+                const remoteJSON = JSON.stringify(remoteCategories || []);
+                if (remoteJSON !== JSON.stringify(categoryIdeas)) {
+                    categoryIdeas.length = 0;
+                    (remoteCategories || []).forEach(c => categoryIdeas.push(c));
+                    controller.renderAll();
+                    resultEl.textContent = categoryIdeas.length
+                        ? "Spin the wheel to choose a category."
+                        : "Add some categories, then spin.";
+                }
+
+                if (remoteSpin && remoteSpin.id !== lastSeenSpinId && !controller.isSpinning()) {
+                    lastSeenSpinId = remoteSpin.id;
+                    controller.spinToIndex(remoteSpin.index, { silent: true });
+                } else if (remoteSpin) {
+                    lastSeenSpinId = remoteSpin.id;
+                }
+
+                applyingRemoteUpdate = false;
+            };
+        }
+
+        initSharedWheel();
         document.querySelectorAll(".tab-btn").forEach(btn => {
             btn.addEventListener("click", () => {
                 document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -534,6 +646,53 @@
                 document.getElementById(`panel-${btn.dataset.tab}`).classList.add("active");
             });
         });
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+        import {
+            getFirestore, doc, setDoc, onSnapshot
+        } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+        const firebaseConfig = {
+            apiKey: "AIzaSyC5LymlkngYTRS_bQSBiq-1AVYp5yzcgjc",
+            authDomain: "kevandra-dates.firebaseapp.com",
+            projectId: "kevandra-dates",
+            storageBucket: "kevandra-dates.firebasestorage.app",
+            messagingSenderId: "83308409002",
+            appId: "1:83308409002:web:18732f8b16234ff31120d3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const wheelDocRef = doc(db, "kevandraWheel", "shared");
+
+        onSnapshot(wheelDocRef, (snapshot) => {
+            if (!window.applyRemoteWheelState) {
+                setTimeout(() => onSnapshot(wheelDocRef, () => {}), 0);
+                return;
+            }
+            const data = snapshot.exists() ? snapshot.data() : {};
+            window.applyRemoteWheelState(data.categories || [], data.lastSpin || null);
+        }, (error) => {
+            console.error("Firestore sync error:", error);
+        });
+
+        window.saveCategoriesToFirestore = async (categories) => {
+            try {
+                await setDoc(wheelDocRef, { categories }, { merge: true });
+            } catch (e) {
+                console.error("Failed to save categories to Firestore:", e);
+            }
+        };
+
+        window.saveSpinToFirestore = async (index) => {
+            try {
+                const payload = { index, id: `${Date.now()}-${Math.random()}` };
+                await setDoc(wheelDocRef, { lastSpin: payload }, { merge: true });
+            } catch (e) {
+                console.error("Failed to save spin to Firestore:", e);
+            }
+        };
     </script>
 </body>
 
